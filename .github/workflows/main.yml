@@ -35,8 +35,9 @@ jobs:
           mkdir releasefiles
           if [ "$RUNNER_OS" == "Windows" ]; then
             choco install visualstudio2019buildtools visualstudio2019-workload-vctools
-          elif [ "$RUNNER_OS" == "macOS" ]; then
             export ELECTRON_BUILDER_EXTRA_ARGS="--x64 --ia32"
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            export ELECTRON_BUILDER_EXTRA_ARGS="--x64 --arm64"
           fi
           make build
           ls -la dist/
