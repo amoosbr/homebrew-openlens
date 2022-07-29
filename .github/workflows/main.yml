@@ -3,24 +3,24 @@ name: Build Lens
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
-          
+    branches: [main]
+
 jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest,windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     steps:
       - name: Checkout
-        uses: actions/checkout@v3.0.2
+        uses: actions/checkout@v3
       - name: Export version to variable
         run: |
-            export LENS_VERSION=$(cat version)
-            echo "LENS_VERSION=$LENS_VERSION" >> $GITHUB_ENV
+          export LENS_VERSION=$(cat version)
+          echo "LENS_VERSION=$LENS_VERSION" >> $GITHUB_ENV
         shell: bash
-      - uses: actions/setup-node@v3        
+      - uses: actions/setup-node@v3
         with:
           node-version: 16.16.0
       - name: Update Lens
@@ -35,8 +35,11 @@ jobs:
           mkdir releasefiles
           if [ "$RUNNER_OS" == "Windows" ]; then
             choco install visualstudio2019buildtools visualstudio2019-workload-vctools
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            export ELECTRON_BUILDER_EXTRA_ARGS="--x64 --ia32"
           fi
           make build
+          ls -la dist/
           if [ "$RUNNER_OS" == "macOS" ]; then
                 cp dist/OpenLens-${{ env.LENS_VERSION }}-latest.*.dmg releasefiles/OpenLens-${{ env.LENS_VERSION }}.dmg
                 cp dist/OpenLens-${{ env.LENS_VERSION }}-latest.*.zip releasefiles/OpenLens-${{ env.LENS_VERSION }}.zip
@@ -62,23 +65,44 @@ jobs:
         uses: softprops/action-gh-release@v0.1.14
         with:
           tag_name: v${{ env.LENS_VERSION }}
-          files: | 
-              lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}.dmg
-              lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}.AppImage
-              lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}.deb
-              lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}.rpm
-              lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}.zip
-              lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}.exe
-              lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}.*.sha256
+          files: |
+            lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}.dmg
+            lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}.AppImage
+            lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}.deb
+            lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}.rpm
+            lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}.zip
+            lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}.exe
+            lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}.*.sha256
       - name: Latest
         uses: softprops/action-gh-release@v0.1.14
         with:
           tag_name: Latest
-          files: | 
-              lens/dist/OpenLens*.dmg
-              lens/dist/OpenLens*.AppImage
-              lens/dist/OpenLens*.deb
-              lens/dist/OpenLens*.rpm
-              lens/dist/OpenLens*.exe
-              lens/dist/OpenLens*.zip
-              lens/dist/lates*.yml
+          files: |
+            lens/dist/OpenLens*.dmg
+            lens/dist/OpenLens*.AppImage
+            lens/dist/OpenLens*.deb
+            lens/dist/OpenLens*.rpm
+            lens/dist/OpenLens*.exe
+            lens/dist/OpenLens*.zip
+            lens/dist/lates*.yml
+  bump-cask:
+    runs-on: ubuntu-latest
+    needs:
+      - build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Update cask
+        shell: bash
+        run: |
+          export LENS_VERSION=$(cat version)
+          sed -E 's/version \"([[:digit:]]+(:?\.[[:digit:]]+)+)\"/version \"'${LENS_VERSION}'\"/' Casks/openlens.rb > lens.rb
+          mv lens.rb Casks/openlens.rb
+          wget -qO "openlens.dmg.sha256" "https://github.com/amoosbr/homebrew-openlens/releases/download/${LENS_VERSION}/OpenLens-${LENS_VERSION}.dmg.sha256"
+          sed -E 's/sha256 \".*\"/sha256 \"'$(cat openlens.dmg.sha256 | awk '{print $1}')'\"/' Casks/openlens.rb > lens.rb
+          mv lens.rb Casks/openlens.rb
+      - name: Add & Commit Cask
+        uses: EndBug/add-and-commit@v9.0.0
+        with:
+          add: "Casks"
+          message: "bump openlens cask version ${{ env.LENS_VERSION }}"
