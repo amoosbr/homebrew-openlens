@@ -42,8 +42,11 @@ jobs:
           make build
           ls -la dist/
           if [ "$RUNNER_OS" == "macOS" ]; then
+                cp dist/OpenLens-${{ env.LENS_VERSION }}-latest.*-arm64.dmg releasefiles/OpenLens-${{ env.LENS_VERSION }}-arm64.dmg
+                mv dist/OpenLens-${{ env.LENS_VERSION }}-latest.*-arm64.dmg dist/OpenLens-${{ env.LENS_VERSION }}-latest.*-arm64.dmg.tmp
                 cp dist/OpenLens-${{ env.LENS_VERSION }}-latest.*.dmg releasefiles/OpenLens-${{ env.LENS_VERSION }}.dmg
-                cp dist/OpenLens-${{ env.LENS_VERSION }}-latest.*.zip releasefiles/OpenLens-${{ env.LENS_VERSION }}.zip
+                mv dist/OpenLens-${{ env.LENS_VERSION }}-latest.*-arm64.dmg.tmp dist/OpenLens-${{ env.LENS_VERSION }}-latest.*-arm64.dmg
+                # cp dist/OpenLens-${{ env.LENS_VERSION }}-latest.*.zip releasefiles/OpenLens-${{ env.LENS_VERSION }}.zip
           elif [ "$RUNNER_OS" == "Linux" ]; then
                 cp dist/OpenLens-${{ env.LENS_VERSION }}-latest.*.x86_64.AppImage releasefiles/OpenLens-${{ env.LENS_VERSION }}.AppImage
                 cp dist/OpenLens-${{ env.LENS_VERSION }}-latest.*.amd64.deb releasefiles/OpenLens-${{ env.LENS_VERSION }}.deb
@@ -58,7 +61,7 @@ jobs:
           if [ "$RUNNER_OS" == "Windows" ]; then
             certutil -hashfile OpenLens-${{ env.LENS_VERSION }}.exe SHA256 > OpenLens-${{ env.LENS_VERSION }}.exe.sha256
           else
-            for filename in OpenLens-${{ env.LENS_VERSION }}.*; do shasum -a 256 ${filename} > ${filename}.sha256 ; done
+            for filename in OpenLens-${{ env.LENS_VERSION }}*; do shasum -a 256 ${filename} > ${filename}.sha256 ; done
           fi
         shell: bash
         working-directory: lens/releasefiles
@@ -67,13 +70,13 @@ jobs:
         with:
           tag_name: v${{ env.LENS_VERSION }}
           files: |
-            lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}.dmg
+            lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}*.dmg
             lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}.AppImage
             lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}.deb
             lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}.rpm
             lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}.zip
             lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}.exe
-            lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}.*.sha256
+            lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}*.sha256
       - name: Latest
         uses: softprops/action-gh-release@v0.1.14
         with:
@@ -97,11 +100,13 @@ jobs:
         shell: bash
         run: |
           export LENS_VERSION=$(cat version)
-          sed -E 's/version \"([[:digit:]]+(:?\.[[:digit:]]+)+)\"/version \"'${LENS_VERSION}'\"/' Casks/openlens.rb > lens.rb
-          mv lens.rb Casks/openlens.rb
+          sed -E -i.bak 's/version \"([[:digit:]]+(:?\.[[:digit:]]+)+)\"/version \"'${LENS_VERSION}'\"/' openlens.rb.tmp
           wget -qO "openlens.dmg.sha256" "https://github.com/amoosbr/homebrew-openlens/releases/download/${LENS_VERSION}/OpenLens-${LENS_VERSION}.dmg.sha256"
-          sed -E 's/sha256 \".*\"/sha256 \"'$(cat openlens.dmg.sha256 | awk '{print $1}')'\"/' Casks/openlens.rb > lens.rb
-          mv lens.rb Casks/openlens.rb
+          wget -qO "openlens.arm64.dmg.sha256" "https://github.com/amoosbr/homebrew-openlens/releases/download/${LENS_VERSION}/OpenLens-${LENS_VERSION}-arm64.dmg.sha256"
+          sed -E -i.bak 's/sha256 intel/sha256 \"'$(cat openlens.dmg.sha256 | awk '{print $1}')'\"/' openlens.rb.tmp
+          sed -E -i.bak 's/sha256 arm/sha256 \"'$(cat openlens.arm64.dmg.sha256 | awk '{print $1}')'\"/' openlens.rb.tmp
+          mv openlens.rb.tmp Casks/openlens.rb
+          rm -f openlens.*.bak
       - name: Add & Commit Cask
         uses: EndBug/add-and-commit@v9.0.0
         with:
