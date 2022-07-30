@@ -101,8 +101,8 @@ jobs:
         run: |
           export LENS_VERSION=$(cat version)
           sed -E -i.bak 's/version \"([[:digit:]]+(:?\.[[:digit:]]+)+)\"/version \"'${LENS_VERSION}'\"/' openlens.rb.tmp
-          wget -qO "openlens.dmg.sha256" "https://github.com/amoosbr/homebrew-openlens/releases/download/${LENS_VERSION}/OpenLens-${LENS_VERSION}.dmg.sha256"
-          wget -qO "openlens.arm64.dmg.sha256" "https://github.com/amoosbr/homebrew-openlens/releases/download/${LENS_VERSION}/OpenLens-${LENS_VERSION}-arm64.dmg.sha256"
+          wget -qO "openlens.dmg.sha256" "https://github.com/amoosbr/homebrew-openlens/releases/download/v${LENS_VERSION}/OpenLens-${LENS_VERSION}.dmg.sha256"
+          wget -qO "openlens.arm64.dmg.sha256" "https://github.com/amoosbr/homebrew-openlens/releases/download/v${LENS_VERSION}/OpenLens-${LENS_VERSION}-arm64.dmg.sha256"
           sed -E -i.bak 's/sha256 intel/sha256 \"'$(cat openlens.dmg.sha256 | awk '{print $1}')'\"/' openlens.rb.tmp
           sed -E -i.bak 's/sha256 arm/sha256 \"'$(cat openlens.arm64.dmg.sha256 | awk '{print $1}')'\"/' openlens.rb.tmp
           mv openlens.rb.tmp Casks/openlens.rb
