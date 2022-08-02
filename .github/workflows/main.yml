@@ -109,12 +109,12 @@ jobs:
         shell: bash
         run: |
           export LENS_VERSION=$(cat version)
-          sed -E -i.bak 's/version \"([[:digit:]]+(:?\.[[:digit:]]+)+)\"/version \"'${LENS_VERSION}'\"/' openlens.rb.tmp
+          sed -E -i.bak 's/version \"([[:digit:]]+(:?\.[[:digit:]]+)+)\"/version \"'${LENS_VERSION}'\"/' openlens.rb.template
           wget -qO "openlens.dmg.sha256" "https://github.com/amoosbr/homebrew-openlens/releases/download/v${LENS_VERSION}/OpenLens-${LENS_VERSION}.dmg.sha256"
           wget -qO "openlens.arm64.dmg.sha256" "https://github.com/amoosbr/homebrew-openlens/releases/download/v${LENS_VERSION}/OpenLens-${LENS_VERSION}-arm64.dmg.sha256"
-          sed -E -i.bak 's/sha256 intel/sha256 \"'$(cat openlens.dmg.sha256 | awk '{print $1}')'\"/' openlens.rb.tmp
-          sed -E -i.bak 's/sha256 arm/sha256 \"'$(cat openlens.arm64.dmg.sha256 | awk '{print $1}')'\"/' openlens.rb.tmp
-          mv openlens.rb.tmp Casks/openlens.rb
+          sed -E -i.bak 's/sha256 intel/sha256 \"'$(cat openlens.dmg.sha256 | awk '{print $1}')'\"/' openlens.rb.template
+          sed -E -i.bak 's/sha256 arm/sha256 \"'$(cat openlens.arm64.dmg.sha256 | awk '{print $1}')'\"/' openlens.rb.template
+          mv openlens.rb.template Casks/openlens.rb
           rm -f openlens.*.bak
       - name: Add & Commit Cask
         uses: EndBug/add-and-commit@v9.0.0
