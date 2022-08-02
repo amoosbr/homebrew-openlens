@@ -36,23 +36,31 @@ jobs:
           mkdir releasefiles
           if [ "$RUNNER_OS" == "Windows" ]; then
             choco install visualstudio2019buildtools visualstudio2019-workload-vctools
-            export ELECTRON_BUILDER_EXTRA_ARGS="--x64 --ia32"
-          elif [ "$RUNNER_OS" == "macOS" ]; then
-            export ELECTRON_BUILDER_EXTRA_ARGS="--x64 --arm64"
           fi
-          make build
-          ls -la dist/
           if [ "$RUNNER_OS" == "macOS" ]; then
-                cp dist/OpenLens-${{ env.LENS_VERSION }}-latest.*-arm64.dmg releasefiles/OpenLens-${{ env.LENS_VERSION }}-arm64.dmg
-                mv dist/OpenLens-${{ env.LENS_VERSION }}-latest.*-arm64.dmg dist/OpenLens-${{ env.LENS_VERSION }}-latest.*-arm64.dmg.tmp
-                cp dist/OpenLens-${{ env.LENS_VERSION }}-latest.*.dmg releasefiles/OpenLens-${{ env.LENS_VERSION }}.dmg
-                mv dist/OpenLens-${{ env.LENS_VERSION }}-latest.*-arm64.dmg.tmp dist/OpenLens-${{ env.LENS_VERSION }}-latest.*-arm64.dmg
-                # cp dist/OpenLens-${{ env.LENS_VERSION }}-latest.*.zip releasefiles/OpenLens-${{ env.LENS_VERSION }}.zip
+                env ELECTRON_BUILDER_EXTRA_ARGS="--arm64 --x64" make build
+                for file in dist/OpenLens-${{ env.LENS_VERSION }}-latest.*.dmg; do
+                    if [[ "$file" == *"arm64"* ]]; then
+                        cp "$file" releasefiles/OpenLens-${{ env.LENS_VERSION }}-arm64.dmg
+                    else
+                        cp "$file" releasefiles/OpenLens-${{ env.LENS_VERSION }}.dmg
+                    fi
+                done
+                # don't need zip releases
+                # for file in dist/OpenLens-${{ env.LENS_VERSION }}-latest.*.zip; do
+                #     if [[ "$file" == *"arm64"* ]]; then
+                #         cp "$file" releasefiles/OpenLens-${{ env.LENS_VERSION }}-arm64.zip
+                #     else
+                #         cp "$file" releasefiles/OpenLens-${{ env.LENS_VERSION }}.zip
+                #     fi
+                # done
           elif [ "$RUNNER_OS" == "Linux" ]; then
+                make build
                 cp dist/OpenLens-${{ env.LENS_VERSION }}-latest.*.x86_64.AppImage releasefiles/OpenLens-${{ env.LENS_VERSION }}.AppImage
                 cp dist/OpenLens-${{ env.LENS_VERSION }}-latest.*.amd64.deb releasefiles/OpenLens-${{ env.LENS_VERSION }}.deb
                 cp dist/OpenLens-${{ env.LENS_VERSION }}-latest.*.x86_64.rpm releasefiles/OpenLens-${{ env.LENS_VERSION }}.rpm
           else
+                env ELECTRON_BUILDER_EXTRA_ARGS="--x64 --ia32" make build
                 cp dist/OpenLens*.exe releasefiles/OpenLens-${{ env.LENS_VERSION }}.exe
           fi
         shell: bash
@@ -75,7 +83,7 @@ jobs:
             lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}.AppImage
             lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}.deb
             lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}.rpm
-            lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}.zip
+            lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}*.zip
             lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}.exe
             lens/releasefiles/OpenLens-${{ env.LENS_VERSION }}*.sha256
       - name: Latest
